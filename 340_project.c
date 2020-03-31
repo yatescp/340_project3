@@ -45,7 +45,9 @@ void* task(void* x)
 
 	/*
 	//pop from the q and store the text in line
-	while (q_pop(Q, line) == 0) {
+	do {
+
+		q_pop(Q, &line);
 
 		//queue empty
 		if (line == NULL) {
@@ -63,7 +65,7 @@ void* task(void* x)
 
 		printf("task %d ending\n", tasknum);
 	
-	}
+	} while (line != NULL)
 	*/
 
 	return 0;
