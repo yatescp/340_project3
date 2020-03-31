@@ -1,0 +1,4 @@
+./program <int> <text.txt
+this is a text file
+with several lines
+of text
