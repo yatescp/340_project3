@@ -6,8 +6,8 @@
 #include <unistd.h>
 
 typedef struct __node {
-    char* line;
-    struct node *next;
+    char* line=NULL;
+    struct node *next=NULL;
 }node;
 
 typedef struct queue {
