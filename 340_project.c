@@ -3,18 +3,14 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <semaphore.h> 
+#include <assert.h>
 
 sem_t count_mutex;
-
-char* pop()
-{
-	char* k = "test string";
-	return k;
-}
+sem_t total_mutex;
+int total_word_count;
 
 int countWords(char* line){
 
-	sem_wait(&count_mutex);
 	int count = 0;
 	bool whitespace = true;
 
@@ -34,7 +30,6 @@ int countWords(char* line){
 		++line;
 
 	}
-	sem_post(&count_mutex);
 	return count;
 }
 
@@ -45,15 +40,33 @@ void* task(void* x)
 	int tasknum = (long)x;
 	printf("task %d starting\n", tasknum);
 
-	char* line = pop();
-
-	int wordCount = countWords(line);
-
-	printf("task %d: %s, %d words\n", tasknum, line, wordCount);
-
-	printf("task %d ending\n", tasknum);
-
 	
+	char* line = "test string";
+
+	/*
+	//pop from the q and store the text in line
+	while (q_pop(Q, line) == 0) {
+
+		//queue empty
+		if (line == NULL) {
+			return 0;
+		}
+
+		sem_wait(&count_mutex);
+
+		int wordCount = countWords(line);
+
+		printf("task %d: %s, %d words\n", tasknum, line, wordCount);
+
+		total_word_count = total_word_count + wordCount;
+		sem_post(&count_mutex);
+
+		printf("task %d ending\n", tasknum);
+	
+	}
+	*/
+
+	return 0;
 }
 
 int main(int argc, char **argv)
@@ -75,16 +88,31 @@ int main(int argc, char **argv)
 	char *k;
 	size_t maxLength = 32;
 	char c;
+	int char_index = 0;
 	
 	k = (char*)malloc(sizeof(char)*maxLength);
 
-	//await input, right now takes a single line of text
-	printf("enter a line of text: ");
-	getline(&k, &maxLength, stdin);
-	printf("you typed: %s\n", k);
+	/* 
+	queue Q;
+	queue_init(Q);
+	*/
+
+	while(getline(&k, &maxLength, stdin) != -1){
+
+		/*
+		//push the lineof text to our queue
+		q_push(Q, k);
+		*/
+
+		//testing
+		printf("%s", k);
+	}
+
+	free(k);
 
 	//initialize semaphores
 	sem_init(&count_mutex, 0, 1);
+	sem_init(&total_mutex, 0, 1);
 
 	//make tasknum threads
 	pthread_t tasks[tasknum];
@@ -101,5 +129,6 @@ int main(int argc, char **argv)
         	pthread_join(tasks[i], &res);
 	}
 
+	printf("Total Word Count: %d\n", total_word_count);
 	
 }
