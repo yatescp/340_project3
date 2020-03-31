@@ -2,10 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <semaphore.h>
+#include <assert.h>
+#include <unistd.h>
 
 typedef struct __node {
     char* line;
-    int tasknum;
     struct node *next;
 }node;
 
@@ -13,21 +14,21 @@ typedef struct queue {
     node *head;
     node *tail;
     pthread_mutex_t head_lock,tail_lock;
-}
+};
 
-void queue_init(queue *q){
+void queue_init(struct queue *q){
     node *tmp = malloc(sizeof(node));
     tmp->next=NULL;
     q->head = q->tail = tmp;
-    pthread_mutex_init(&q->head_lock, NULL)
-    pthread_mutex_init(&q->tail_lock, NULL)
+    pthread_mutex_init(&q->head_lock, NULL);
+    pthread_mutex_init(&q->tail_lock, NULL);
 }
 
-void q_push(queue *q, char *line){
+void q_push(struct queue *q, char *line){
     node *tmp = malloc(sizeof(node));
     assert(tmp != NULL);
-    tmp->line = *line
-    tmp->next = NULL
+    tmp->line = *line;
+    tmp->next = NULL;
 
     pthread_mutex_lock(&q->tail_lock);
     q->tail->next = tmp;
@@ -35,8 +36,8 @@ void q_push(queue *q, char *line){
     pthread_mutex_unlock(&q->tail_lock);
 }
 
-int q_pop(queue *q, char* *line){
-    thread_mutex_lock(&q->head_lock);
+int q_pop(struct queue *q, char* *line){
+    pthread_mutex_lock(&q->head_lock);
     node *tmp = q->head;
     node *new_head = tmp->next;
     if(new_head == NULL){
@@ -50,3 +51,4 @@ int q_pop(queue *q, char* *line){
     free(tmp);
     return 0;
 }
+
