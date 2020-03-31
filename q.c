@@ -5,6 +5,7 @@
 
 typedef struct __node {
     char* line;
+    int tasknum;
     struct node *next;
 }node;
 
