@@ -1,14 +1,60 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <semaphore.h> 
+
+sem_t count_mutex;
+
+char* pop()
+{
+	char* k = "test string";
+	return k;
+}
+
+int countWords(char* line){
+
+	sem_wait(&count_mutex);
+	int count = 0;
+	bool whitespace = true;
+
+	while(*line){
+
+		//check if this character is a whitespace, if so set whitespace to true
+		//this also accounts for multiple whitespaces in succession
+		if (*line == ' ' || *line == '\n' || *line == '\t') {
+			whitespace = true;
+		}
+
+		//this only happens if the last character was a whitespace and this one isn't
+		else if(whitespace == true){
+			whitespace = false;
+			count = count + 1;
+		}
+		++line;
+
+	}
+	sem_post(&count_mutex);
+	return count;
+}
+
 
 void* task(void* x)
 {
 	//cast void* x to int and save as task number
 	int tasknum = (long)x;
 	printf("task %d starting\n", tasknum);
-}
 
+	char* line = pop();
+
+	int wordCount = countWords(line);
+
+	printf("task %d: %s, %d words\n", tasknum, line, wordCount);
+
+	printf("task %d ending\n", tasknum);
+
+	
+}
 
 int main(int argc, char **argv)
 {
@@ -36,6 +82,9 @@ int main(int argc, char **argv)
 	printf("enter a line of text: ");
 	getline(&k, &maxLength, stdin);
 	printf("you typed: %s\n", k);
+
+	//initialize semaphores
+	sem_init(&count_mutex, 0, 1);
 
 	//make tasknum threads
 	pthread_t tasks[tasknum];
