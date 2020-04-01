@@ -4,10 +4,72 @@
 #include <stdbool.h>
 #include <semaphore.h> 
 #include <assert.h>
+#include <unistd.h>
+#include <string.h>
 
 sem_t count_mutex;
 sem_t total_mutex;
+sem_t line_mutex;
 int total_word_count;
+
+size_t MAXLENGTH = 100;
+
+typedef struct __node {
+    char* line;
+    struct node *next;
+}node;
+
+typedef struct queue {
+    node *head;
+    node *tail;
+    pthread_mutex_t head_lock,tail_lock;
+};
+	
+struct queue a;
+struct queue *Q=&a;
+
+void queue_init(struct queue *q){
+    node *tmp = malloc(sizeof(node));
+    tmp->next=NULL;
+    tmp->line= malloc(sizeof(char)*MAXLENGTH);
+    q->head = q->tail = tmp;
+    pthread_mutex_init(&q->head_lock, NULL);
+    pthread_mutex_init(&q->tail_lock, NULL);
+}
+
+void q_push(struct queue *q, char *line){
+    if (q->head->next == NULL){
+	printf("no next node found, overwriting the head\n");
+        strncpy(q->head->line, line, sizeof(line));
+        return;
+    }
+    node *tmp = malloc(sizeof(node));
+    assert(tmp != NULL);
+    tmp->line = malloc(sizeof(char)*MAXLENGTH);
+    strncpy(tmp->line, line, sizeof(line));
+    tmp->next = NULL;
+    pthread_mutex_lock(&q->tail_lock);
+    q->tail->next = tmp;
+    q->tail=tmp;
+    printf("New node created with value: %s", tmp->line);
+    pthread_mutex_unlock(&q->tail_lock);
+}
+
+int q_pop(struct queue *q){
+    printf("q_pop called, line value: %s\n", q->head->line);
+    pthread_mutex_lock(&q->head_lock);
+    node *tmp = q->head;
+    node *new_head = tmp->next;
+    if(new_head == NULL){
+        pthread_mutex_unlock(&q->head_lock);
+        //signal empty
+        return -1;
+    }
+    q->head=new_head;
+    pthread_mutex_unlock(&q->head_lock);
+    free(tmp);
+    return 0;
+}
 
 int countWords(char* line){
 
@@ -41,32 +103,49 @@ void* task(void* x)
 	printf("task %d starting\n", tasknum);
 
 	
-	char* line = "test string";
+	char* line;
 
-	/*
+	line = (char*)malloc(sizeof(char)*MAXLENGTH);
+	///*
 	//pop from the q and store the text in line
-	do {
-
-		q_pop(Q, &line);
-
-		//queue empty
-		if (line == NULL) {
-			return 0;
+	while (Q->head->next != NULL) {
+		/*
+		//redundant
+		if (total_word_count > 10000) {
+			break;
 		}
+		sem_wait(&total_mutex);
+		total_word_count = total_word_count + 1;
 
-		sem_wait(&count_mutex);
+		printf("task: %d \tcount: %d\n", tasknum, total_word_count);
+		sem_post(&total_mutex);
+		*/
+		sem_wait(&total_mutex);
+
+		printf("attempting to access head\n");
+
+		line = Q->head->line;
+		//printf("asdgjklaalkdgklajg");
+
+		//line = "gaskldgal";
+
+		printf("head value: %s\n", line);
+
+		q_pop(Q);
 
 		int wordCount = countWords(line);
 
 		printf("task %d: %s, %d words\n", tasknum, line, wordCount);
 
 		total_word_count = total_word_count + wordCount;
-		sem_post(&count_mutex);
+		sem_wait(&total_mutex);
+		//*/
 
-		printf("task %d ending\n", tasknum);
-	
-	} while (line != NULL)
-	*/
+
+	} //(line != NULL);
+	//*/
+
+	printf("task %d ending\n", tasknum);
 
 	return 0;
 }
@@ -88,23 +167,17 @@ int main(int argc, char **argv)
 
 	//character buffer
 	char *k;
-	size_t maxLength = 32;
 	char c;
 	int char_index = 0;
-	
-	k = (char*)malloc(sizeof(char)*maxLength);
 
-	/* 
-	queue Q;
+	k = (char*)malloc(sizeof(char)*MAXLENGTH);
+
 	queue_init(Q);
-	*/
 
-	while(getline(&k, &maxLength, stdin) != -1){
-
-		/*
+	while(getline(&k, &MAXLENGTH, stdin) != -1){
 		//push the lineof text to our queue
+
 		q_push(Q, k);
-		*/
 
 		//testing
 		printf("%s", k);
@@ -115,6 +188,8 @@ int main(int argc, char **argv)
 	//initialize semaphores
 	sem_init(&count_mutex, 0, 1);
 	sem_init(&total_mutex, 0, 1);
+	sem_init(&line_mutex, 0, 1);
+
 
 	//make tasknum threads
 	pthread_t tasks[tasknum];
@@ -132,5 +207,7 @@ int main(int argc, char **argv)
 	}
 
 	printf("Total Word Count: %d\n", total_word_count);
+
+	return 0;
 	
-}
+} 
